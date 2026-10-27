@@ -104,8 +104,16 @@ static struct driver *init_try_node_path(char const *node)
 		return NULL;
 
 	drv = drv_create(fd, NULL);
-	if (!drv)
+	if (!drv) {
 		close(fd);
+		return NULL;
+	}
+
+	// DRM master is taken by accident when a primary node (card*) is opened first, e.g.
+	// simpledrm, which has no render node. Drop it so that the composer, which needs it,
+	// isn't blocked.
+	if (drmIsMaster(fd))
+		drmDropMaster(fd);
 
 	drv_logi("Loaded driver %s on path %s\n", drv_get_name(drv), node);
 	return drv;
